@@ -9,16 +9,16 @@ from seals import seals_process_coarse_timeseries
 from seals import seals_main
 from seals import seals_visualization_tasks
 
-from seals import *
+from seals import * 
 
 def resample_pa(p):
     hb.log('Resampling PA')
     resampled_global_path = os.path.join(p.cur_dir, 'resampled_pa_global.tif')
     resampled_path = os.path.join(p.cur_dir, 'resampled_pa.tif')
-    coarse_path = os.path.join(p.input_dir, 'priority_binaries_150sec', 'results_ws_0996_wc_0004_p0.tiff')
+    coarse_path = os.path.join(p.inputs_dir, 'priority_binaries_150sec', 'results_ws_0996_wc_0004_p0.tiff')
     
     if not hb.path_exists(resampled_global_path):
-    
+        hb.path_exists(coarse_path, verbose=True)
         hb.resample_to_match(coarse_path, p.ha_per_cell_fine_path, resampled_global_path, output_data_type=1, resample_method='near', ndv=255)
     
     if not hb.path_exists(resampled_path):
@@ -75,30 +75,17 @@ if __name__ == '__main__':
     # Create a ProjectFlow Object to organize directories and enable parallel processing.
     p = hb.ProjectFlow()
 
-    # Assign project-level attributes to the p object (such as in p.base_data_dir = ... below)
-    # including where the project_dir and base_data are located.
-    # The project_name is used to name the project directory below. If the directory exists, each task will not recreate
-    # files that already exist. 
-    p.user_dir = os.path.expanduser('~')        
-    p.extra_dirs = ['Files', 'seals', 'projects']
-    p.project_name = '30by30'
-    # p.project_name = p.project_name + '_' + hb.pretty_time() # If don't you want to recreate everything each time, comment out this line.
-    
-    # Based on the paths above, set the project_dir. All files will be created in this directory.
-    p.project_dir = os.path.join(p.user_dir, os.sep.join(p.extra_dirs), p.project_name)
+    # Set the project_dir wherever you want, though it requires write-permissions and preferably should not be in a cloud-synced directory.
+    p.project_dir = '../'
+    # p.base_data_dir = os.path.join(p.project_dir, 'base_data')  
+    p.base_data_dir = os.path.join(os.path.expanduser('~')  , 'Files/base_data')
+
     p.set_project_dir(p.project_dir) 
     
     p.run_in_parallel = 1 # Must be set before building the task tree if the task tree has parralel iterator tasks.
 
     # Build the task tree via a building function and assign it to p. IF YOU WANT TO LOOK AT THE MODEL LOGIC, INSPECT THIS FUNCTION
     build_30by30_task_tree(p)
-
-    # Set the base data dir. The model will check here to see if it has everything it needs to run.
-    # If anything is missing, it will download it. You can use the same base_data dir across multiple projects.
-    # Additionally, if you're clever, you can move files generated in your tasks to the right base_data_dir
-    # directory so that they are available for future projects and avoids redundant processing.
-    # The final directory has to be named base_data to match the naming convention on the google cloud bucket.
-    p.base_data_dir = os.path.join(p.user_dir, 'Files/base_data')
 
     # ProjectFlow downloads all files automatically via the p.get_path() function. If you want it to download from a different 
     # bucket than default, provide the name and credentials here. Otherwise uses default public data 'gtap_invest_seals_2023_04_21'.
